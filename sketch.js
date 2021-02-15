@@ -13,25 +13,29 @@ var img_foreground
 
 // Number of different options
 var optionCount
+// The angle of an option on the wheel
+var optionAngle
 
 // State of the wheel
 var state = 'STATIC'
+// Target option to land on
+var target = 0
+var targetAngle = 0
 // Angle of rotation
 var theta = 0
 // How many degrees to add each frame
-var speed = 0
+var velocity = 0
 
 // The rate at which the wheel
 // accelerates and decelerates
 var acceleration_rate // Added each frame
-var deceleration_rate // Multiplies by speed
+var deceleration_rate // Multiplies by velocity
 
-// Maximum speed of the wheel
+// Maximum velocity of the wheel
 // Starts to decelerate when it is reached
-var threshold = 10
-var revolutions = 360 / threshold
+var threshold = 15
 
-// How long to spin at full speed
+// How long to spin at full velocity
 var timer
 
 
@@ -50,6 +54,8 @@ function preload() {
 
     // Set number of options
     optionCount = params.n
+    // Calculate option angle
+    optionAngle = 360 / optionCount
 }
 
 
@@ -82,28 +88,26 @@ function draw() {
     image(img_background, 0, 0)
 
     if (state == 'ACCELERATE') {
-        // Increase speed by the current rate of acceleration
-        speed += acceleration_rate
+        // Increase velocity by the current rate of acceleration
+        velocity += acceleration_rate
 
-        // If speed exceeds the threshold,
+        // If velocity exceeds the threshold,
         // switch to spinning at a constant rate
-        if (speed >= threshold) {
-            speed = threshold
+        if (velocity >= threshold) {
+            velocity = threshold
             state = 'SPIN'
             
-            let p = random(revolutions)
-
             // Random time
-            let seconds = random(5, 10) * 30
-            // Remove frames that don't align with the revolutions
-            seconds -= seconds % revolutions
-
-            timer = seconds + p
+            timer = random(5, 10) * 30
         }
+
+        theta += velocity
     }
 
-    // Spin at a constant speed until timer is up
+    // Spin at a constant velocity until timer is up
     else if (state == 'SPIN') {
+        theta += velocity
+        
         // When the timer has reached 0,
         // Switch to decelerate
         if (timer <= 0) {
@@ -111,20 +115,61 @@ function draw() {
 
             // Set a random rate of deceleration
             deceleration_rate = getDeceleration()
+
+            // Pick a random target!
+            target = int(random(optionCount))
+            console.log('Chosen target:', target)
+
+            // Calculate target angle
+            targetAngle = optionAngle * target
+            // Add random offset
+            targetAngle += random(-optionAngle, optionAngle)
+            // Add revolutions
+            targetAngle += 360 * int(random(1, 6))
+            // Account for already made revolutions
+            targetAngle += theta - theta % 360
+            
+            console.log('Current Angle:', theta, 'Target Angle:', targetAngle)
         }
 
         timer -= 1
     }
 
     else if (state == 'DECELERATE') {
-        speed *= deceleration_rate
+        let lerpValue = lerp(theta, targetAngle, deceleration_rate)
+        let lerpVelocity = lerpValue - theta
 
-        if (speed <= 0.05) {
+        // Approach the predicted velocity of lerping
+        // while current velocity is greater
+        if (lerpVelocity <= velocity) {
+            velocity = lerp(velocity, lerpVelocity, deceleration_rate)
+        }
+
+        theta += velocity
+
+        // If current velocity is less than the predicted velocity,
+        // stay spinning at a constant rate until it drops low enough
+        // 
+        // Once the predicted lerp velocity has dropped
+        // and they're within a margin of error,
+        // switch state to TRACK
+        if (abs(velocity - lerpVelocity) <= 1) {
+            state = 'TRACK'
+        }
+    }
+
+    else if (state == 'TRACK') {
+        theta = lerp(theta, targetAngle, deceleration_rate)
+
+        let error = targetAngle - theta
+
+        if (error < 0.1) {
             state = 'STATIC'
-            speed = 0
+            velocity = 0
+            theta = targetAngle
 
             // Calculate result
-            let result = round(theta / 360 * optionCount) % optionCount
+            let result = angleToOption(theta)
             console.log('Result:', result)
 
             // UPDATE AND LOG DISTRIBUTION
@@ -151,7 +196,6 @@ function draw() {
     // }
     
     // Update orientation of wheel
-    theta += speed
     rotate(theta % 360)
 
     // Render wheel
@@ -160,12 +204,15 @@ function draw() {
 
 
 function mousePressed() {
+    // If wheel is not moving when pressed, accelerate!
     if (state == 'STATIC') {
         state = 'ACCELERATE'
 
         // Set the rate of acceleration
         acceleration_rate = getAcceleration()
     }
+
+    // At any point can the wheel be set to decelerate
     else if (state == 'ACCELERATE' | state == 'SPIN') {
         state = 'DECELERATE'
         // Set the rate of deceleration
@@ -180,5 +227,20 @@ function getAcceleration() {
 
 
 function getDeceleration() {
-    return 0.995 - 1 / 360
+    return 0.05// - 1 / 360
+}
+
+
+function angleToOption(t) {
+    a = t / 360 * optionCount
+    b = round(a)
+    r = mod(b, 8)
+
+    return r
+}
+
+
+function mod(n, m) {
+    /* Standard mathematical modulo */
+    return ((n % m) + m) % m
 }
