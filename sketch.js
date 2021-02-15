@@ -1,246 +1,194 @@
 // When visiting the page, the follow arguments must be passed on in the URL:
+// n:  number of different labels
 // fg: URL to foreground image
 // mg: URL to image for wheel
 // bg: URL to background image
 // 
-// Ex. http://127.0.0.1:5500/index.html?mg=images/wheel.png&bg=images/background.png&fg=images/foreground.png
+// Ex. http://127.0.0.1:5500/index.html?n=8&mg=images/wheel.png&bg=images/background.png&fg=images/foreground.png
 
+
+var state = 'INACTIVE'
 
 // Images
-var img_background
-var img_wheel
-var img_foreground
+var img_bg // Background
+var img_wh // Wheel
+var img_fg // Foreground
 
-// Number of different options
-var optionCount
-// The angle of an option on the wheel
-var optionAngle
+// Labels
+var labelCount
+var labelAngle
 
-// State of the wheel
-var state = 'STATIC'
-// Target option to land on
-var target = 0
-var targetAngle = 0
-// Angle of rotation
-var theta = 0
-// How many degrees to add each frame
-var velocity = 0
+// Target
+var startAngle = 0 // Angle at start of spin
+var targetLabel
+var targetAngle = 1
 
-// The rate at which the wheel
-// accelerates and decelerates
-var acceleration_rate // Added each frame
-var deceleration_rate // Multiplies by velocity
+// Timing
+var startFrame = 0
+var endFrame = 0
+var duration = 8
 
-// Maximum velocity of the wheel
-// Starts to decelerate when it is reached
-var threshold = 15
-
-// How long to spin at full velocity
-var timer
-
-
-// TESTING DISTRIBUTION
-var distribution
+// Orientation
+var wheelAngle = 0
 
 
 function preload() {
+    // Load and prepare URL arguments
     let params = getURLParams()
     console.log(params)
     
-    // Load images
-    img_background = loadImage(params.bg)
-    img_wheel = loadImage(params.mg)
-    img_foreground = loadImage(params.fg)
+    labelCount = parseInt(params.n)
 
-    // Set number of options
-    optionCount = params.n
-    // Calculate option angle
-    optionAngle = 360 / optionCount
+    // Calculate the width of each label
+    labelAngle = 360 / labelCount
+
+    // Load all images
+    img_bg = loadImage(params.bg)
+    img_wh = loadImage(params.wh)
+    img_fg = loadImage(params.fg)
 }
 
 
 function setup() {
     imageMode(CENTER)
     angleMode(DEGREES)
-    
-    // Set size based on small canvas dimension
-    let size = img_wheel.width > img_wheel.height ? img_wheel.height : img_wheel.width
+
+    // Create a canvas only slightly larger than the wheel image
+    let size = img_wh.width > img_wh.height ? img_wh.height : img_wh.width
     size += 20
-
-    // Scale window based on image
     createCanvas(size, size)
-
-
-    // SET UP TESTING
-    distribution = []
-    for (let i = 0; i < optionCount; i++) {
-        distribution.push(0)
-    }
 }
 
 
 function draw() {
-    // Orient to draw relative to the center
     translate(width / 2, height / 2)
-    
-    background(20, 0, 20) // Always black background
+    background(0)
 
-    image(img_background, 0, 0)
+    // Render background image
+    image(img_bg, 0, 0)
 
-    if (state == 'ACCELERATE') {
-        // Increase velocity by the current rate of acceleration
-        velocity += acceleration_rate
 
-        // If velocity exceeds the threshold,
-        // switch to spinning at a constant rate
-        if (velocity >= threshold) {
-            velocity = threshold
-            state = 'SPIN'
-            
-            // Random time
-            timer = random(5, 10) * 30
-        }
+    if (state == 'ACTIVE') {
+        let p = map(frameCount, startFrame, endFrame, 0, 1)
+        wheelAngle = slerp(startAngle, targetAngle, p)
 
-        theta += velocity
-    }
-
-    // Spin at a constant velocity until timer is up
-    else if (state == 'SPIN') {
-        theta += velocity
-        
-        // When the timer has reached 0,
-        // Switch to decelerate
-        if (timer <= 0) {
-            state = 'DECELERATE'
-
-            // Set a random rate of deceleration
-            deceleration_rate = getDeceleration()
-
-            // Pick a random target!
-            target = int(random(optionCount))
-            console.log('Chosen target:', target)
-
-            // Calculate target angle
-            targetAngle = optionAngle * target
-            // Add random offset
-            targetAngle += random(-optionAngle, optionAngle)
-            // Add revolutions
-            targetAngle += 360 * int(random(1, 6))
-            // Account for already made revolutions
-            targetAngle += theta - theta % 360
-            
-            console.log('Current Angle:', theta, 'Target Angle:', targetAngle)
-        }
-
-        timer -= 1
-    }
-
-    else if (state == 'DECELERATE') {
-        let lerpValue = lerp(theta, targetAngle, deceleration_rate)
-        let lerpVelocity = lerpValue - theta
-
-        // Approach the predicted velocity of lerping
-        // while current velocity is greater
-        if (lerpVelocity <= velocity) {
-            velocity = lerp(velocity, lerpVelocity, deceleration_rate)
-        }
-
-        theta += velocity
-
-        // If current velocity is less than the predicted velocity,
-        // stay spinning at a constant rate until it drops low enough
-        // 
-        // Once the predicted lerp velocity has dropped
-        // and they're within a margin of error,
-        // switch state to TRACK
-        if (abs(velocity - lerpVelocity) <= 1) {
-            state = 'TRACK'
+        // Switch state to INACTIVE when duration has passed
+        if (frameCount > endFrame) {
+            state = 'INACTIVE'
         }
     }
 
-    else if (state == 'TRACK') {
-        theta = lerp(theta, targetAngle, deceleration_rate)
 
-        let error = targetAngle - theta
+    // Render wheel image
+    push()
+    rotate(wheelAngle % 360)
+    image(img_wh, 0, 0)
+    pop()
 
-        if (error < 0.1) {
-            state = 'STATIC'
-            velocity = 0
-            theta = targetAngle
-
-            // Calculate result
-            let result = angleToOption(theta)
-            console.log('Result:', result)
-
-            // UPDATE AND LOG DISTRIBUTION
-            distribution[result] += 1
-            let total = distribution.reduce((a, b) => a + b, 0)
-            let ratios = []
-
-            for (let i = 0; i < distribution.length; i++) {
-                let ratio = distribution[i] / total
-                ratio = round(ratio * optionCount * 100)
-                ratios.push(ratio)
-            }
-
-            console.log(ratios)
-        }
-    }
-
-    // else if (state == 'STATIC') {
-    //     state = 'ACCELERATE'
-    //     theta = 0
-
-    //     // Set a random rate of acceleration
-    //     acceleration_rate = getAcceleration()
-    // }
-    
-    // Update orientation of wheel
-    rotate(theta % 360)
-
-    // Render wheel
-    image(img_wheel, 0, 0)
+    // Render debug text for which label it is on
+    let labelId = getLabel(wheelAngle)
+    textSize(56)
+    text(labelId, 0, 0)
 }
 
 
 function mousePressed() {
-    // If wheel is not moving when pressed, accelerate!
-    if (state == 'STATIC') {
-        state = 'ACCELERATE'
+    state = 'ACTIVE'
+    startAngle = wheelAngle
+    newTarget()
 
-        // Set the rate of acceleration
-        acceleration_rate = getAcceleration()
-    }
-
-    // At any point can the wheel be set to decelerate
-    else if (state == 'ACCELERATE' | state == 'SPIN') {
-        state = 'DECELERATE'
-        // Set the rate of deceleration
-        deceleration_rate = getDeceleration()
-    }
+    // Set start and end frames
+    startFrame = frameCount
+    endFrame = startFrame + 30 * duration
 }
 
 
-function getAcceleration() {
-    return 0.2
+function newTarget() {
+    // Pick a random target label!
+    targetId = int(random(labelCount))
+    
+    // Calculate an exact angle on which to land,
+    // which is of the current target label
+
+    // Get the center of the label
+    targetAngle = labelAngle * targetId
+
+    // Add random offset
+    targetAngle += random(-labelAngle * 0.45, labelAngle * 0.45)
+
+    // Add revolutions
+    targetAngle += 360 * int(random(6, 8))
+
+    // Account for already made revolutions
+    targetAngle += wheelAngle - wheelAngle % 360 + 360
+
+    return targetId
 }
 
 
-function getDeceleration() {
-    return 0.05// - 1 / 360
-}
-
-
-function angleToOption(t) {
-    a = t / 360 * optionCount
+function getLabel(angle) {
+    /* Determine which result an angle is on */
+    a = angle/ 360 * labelCount
     b = round(a)
     r = mod(b, 8)
-
     return r
 }
 
 
 function mod(n, m) {
-    /* Standard mathematical modulo */
+    /** Standard mathematical modulo */
     return ((n % m) + m) % m
+}
+
+
+function slerp(x, t, p){
+    /** Sloping interpolation */
+    return t + (x - t) * (cos(p * 180) * 0.5 + 0.5)
+}
+
+
+function spinWheel(x, t, p, a, b, c) {
+    /**
+     * 1. While p is lower than a, return the first half of slerp
+     * 2. While p is center in between a and b, return linearly
+     * 3. While p is higher than b, return the second half of slerp
+     * 
+     * This creates an S curve with a middle straigh line of constant change
+     */
+
+    // Calculate the ratios of the whole
+    let total = a + b + c
+    ra = a / total
+    rb = ra + b / total
+    rc = rb + c / total
+
+    // *1.
+    if (p < ra) {
+        p = map(p, 0, ra, 0, 0.5)
+        return slerp(x, t, p)
+    }
+
+    else {
+        // The angle halfway through the slerp
+        let middleStart = slerp(x, t, 0.5)
+        // How long the middle bit lasts
+        let middleDuration = duration * (b / total)
+        // How far the center line goes
+        let extension = HALF_PI * b * 90 * middleDuration
+        // The angle at the end of the middle bit
+        let middleEnd = middleStart + extension
+        
+        // *2.
+        if (p < rb) {
+            p =  map(p, ra, rb, 0, 1)
+            let r = middleStart + extension * p
+            return r
+        }
+
+        // *3.
+        else {
+            p = map(p, rb, rc, 0.5, 1)
+            return slerp(x, t, p)
+        }
+    }
 }
