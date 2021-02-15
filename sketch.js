@@ -54,7 +54,7 @@ function setup() {
     angleMode(DEGREES)
 
     // Create a canvas only slightly larger than the wheel image
-    let size = img_wh.width > img_wh.height ? img_wh.height : img_wh.width
+    let size = img_wh.width > img_wh.height ? img_wh.width : img_wh.height
     size += 20
     createCanvas(size, size)
 }
