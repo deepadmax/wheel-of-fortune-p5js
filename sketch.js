@@ -23,11 +23,12 @@ var startAngle = 0 // Angle at start of spin
 var targetLabel
 var targetAngle = 1
 
-// Timing
+// Animation
 var startFrame = 0
 var endFrame = 0
-var duration = 12
-var smoothness = 1.4
+var duration // Length of the entire animation
+var smoothness // How slowly the target is approached, >1.0
+var revolutions // Number of revolutions to reach target
 
 // Orientation
 var wheelAngle = 0
@@ -38,7 +39,10 @@ function preload() {
     let params = getURLParams()
     console.log(params)
     
-    labelCount = parseInt(params.n)
+    labelCount = parseInt(params.labels)
+    duration = parseFloat(params.duration)
+    smoothness = parseFloat(params.smoothness)
+    revolutions = parseFloat(params.revolutions)
 
     // Calculate the width of each label
     labelAngle = 360 / labelCount
@@ -77,6 +81,9 @@ function draw() {
         // Switch state to INACTIVE when duration has passed
         if (frameCount > endFrame) {
             state = 'INACTIVE'
+            
+            // Minimize the value of the wheel angle
+            wheelAngle = wheelAngle % 360
         }
     }
 
@@ -120,7 +127,7 @@ function newTarget() {
     targetAngle += random(-labelAngle * 0.45, labelAngle * 0.45)
 
     // Add revolutions
-    targetAngle += 360 * int(random(6, 8))
+    targetAngle += 360 * revolutions
 
     // Account for already made revolutions
     targetAngle += wheelAngle - wheelAngle % 360 + 360
