@@ -13,14 +13,15 @@ var state = 'INACTIVE'
 var img_bg // Background
 var img_wh // Wheel
 var img_fg // Foreground
+var snd_tick
 
 // Labels
-var labelCount
-var labelAngle
+var sectorCount
+var sectorAngle
 
 // Target
 var startAngle = 0 // Angle at start of spin
-var targetLabel
+var targetSector
 var targetAngle = 1
 
 // Animation
@@ -29,6 +30,9 @@ var endFrame = 0
 var duration // Length of the entire animation
 var smoothness // How slowly the target is approached, >1.0
 var revolutions // Number of revolutions to reach target
+var offset // How much the target can be offset on the label
+
+var tickCounter = 0
 
 // Orientation
 var wheelAngle = 0
@@ -39,24 +43,28 @@ function preload() {
     let params = getURLParams()
     console.log(params)
     
-    labelCount = parseInt(params.labels)
+    sectorCount = parseInt(params.sectors)
     duration = parseFloat(params.duration)
     smoothness = parseFloat(params.smoothness)
     revolutions = parseFloat(params.revolutions)
+    offset = parseFloat(params.offset)
 
     // Calculate the width of each label
-    labelAngle = 360 / labelCount
+    sectorAngle = 360 / sectorCount
 
     // Load all images
     img_bg = loadImage(params.bg)
     img_wh = loadImage(params.wh)
     img_fg = loadImage(params.fg)
+
+    snd_tick = loadSound('sounds/tick.mp3')
 }
 
 
 function setup() {
     imageMode(CENTER)
     angleMode(DEGREES)
+    textAlign(CENTER, CENTER)
 
     // Create a canvas only slightly larger than the wheel image
     let size = img_wh.width > img_wh.height ? img_wh.width : img_wh.height
@@ -74,9 +82,26 @@ function draw() {
 
 
     if (state == 'ACTIVE') {
+        let previousAngle = wheelAngle
+
+        // Move wheel along according to a slerp function
         let playingFrame = constrain(frameCount, startFrame, endFrame)
         let p = map(playingFrame, startFrame, endFrame, 0, 1)
         wheelAngle = slerp(startAngle, targetAngle, p, k=smoothness)
+
+        
+        // Get which labels the previous and current angles are on
+        let labelA = round(previousAngle / sectorAngle)
+        let labelB = round(wheelAngle / sectorAngle)
+
+        // Add the difference to counter
+        tickCounter += labelB - labelA
+
+        // Play tick sound for each and every sector passed
+        for (; tickCounter > 0; tickCounter--) {
+            snd_tick.play()
+        }
+
 
         // Switch state to INACTIVE when duration has passed
         if (frameCount > endFrame) {
@@ -86,7 +111,6 @@ function draw() {
             wheelAngle = wheelAngle % 360
         }
     }
-
 
     // Render wheel image
     push()
@@ -115,16 +139,30 @@ function mousePressed() {
 
 function newTarget() {
     // Pick a random target label!
-    targetId = int(random(labelCount))
+    targetId = int(random(sectorCount))
     
     // Calculate an exact angle on which to land,
     // which is of the current target label
 
     // Get the center of the label
-    targetAngle = labelAngle * targetId
+    targetAngle = sectorAngle * targetId
 
-    // Add random offset
-    targetAngle += random(-labelAngle * 0.45, labelAngle * 0.45)
+
+    // Get half of the label angle
+    let halfLabelAngle = sectorAngle * 0.5
+
+    // Make an angle for each side
+    let leftAngle = -halfLabelAngle
+    let rightAngle = halfLabelAngle - 1
+        // Minus 1 to stay out of the next label
+    
+    // How much of an offset
+    leftAngle *= offset
+    rightAngle *= offset
+    
+    // Add a random offset
+    targetAngle += random(leftAngle, rightAngle)
+
 
     // Add revolutions
     targetAngle += 360 * revolutions
@@ -138,7 +176,7 @@ function newTarget() {
 
 function getLabel(angle) {
     /* Determine which result an angle is on */
-    a = angle / 360 * labelCount
+    a = angle / 360 * sectorCount
     b = round(a)
     r = mod(b, 8)
     return r
