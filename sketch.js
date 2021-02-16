@@ -26,7 +26,8 @@ var targetAngle = 1
 // Timing
 var startFrame = 0
 var endFrame = 0
-var duration = 8
+var duration = 12
+var smoothness = 1.4
 
 // Orientation
 var wheelAngle = 0
@@ -69,8 +70,9 @@ function draw() {
 
 
     if (state == 'ACTIVE') {
-        let p = map(frameCount, startFrame, endFrame, 0, 1)
-        wheelAngle = slerp(startAngle, targetAngle, p)
+        let playingFrame = constrain(frameCount, startFrame, endFrame)
+        let p = map(playingFrame, startFrame, endFrame, 0, 1)
+        wheelAngle = slerp(startAngle, targetAngle, p, k=smoothness)
 
         // Switch state to INACTIVE when duration has passed
         if (frameCount > endFrame) {
@@ -93,13 +95,14 @@ function draw() {
 
 
 function mousePressed() {
-    state = 'ACTIVE'
-    startAngle = wheelAngle
-    newTarget()
-
     // Set start and end frames
     startFrame = frameCount
     endFrame = startFrame + 30 * duration
+
+    startAngle = wheelAngle
+    newTarget()
+
+    state = 'ACTIVE'
 }
 
 
@@ -128,7 +131,7 @@ function newTarget() {
 
 function getLabel(angle) {
     /* Determine which result an angle is on */
-    a = angle/ 360 * labelCount
+    a = angle / 360 * labelCount
     b = round(a)
     r = mod(b, 8)
     return r
@@ -141,9 +144,24 @@ function mod(n, m) {
 }
 
 
-function slerp(x, t, p){
-    /** Sloping interpolation */
-    return t + (x - t) * (cos(p * 180) * 0.5 + 0.5)
+function slerp(x, t, p, k=1){
+    /** Sloping interpolation
+     * x : start value
+     * t : target value
+     * p : how far inbetween, 0.0 to 1.0
+     * k : smoothness of ending
+    */
+
+    // Invert p and smoothen it with k
+    let P = pow(1 - p, k)
+    // Value from slope, between x=0 and x=1
+    let sigmoidValue = cos(P * 180)
+    // Adjust y-values to between 0 and 1
+    let adjustedSigmoid = sigmoidValue * 0.5 + 0.5
+    // Move to range between x and t
+    let slerpedValue = map(adjustedSigmoid, 0, 1, x, t)
+
+    return slerpedValue
 }
 
 
