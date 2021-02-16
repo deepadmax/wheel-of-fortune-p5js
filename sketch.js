@@ -10,9 +10,9 @@
 var state = 'INACTIVE'
 
 // Images
-var img_bg // Background
-var img_wh // Wheel
-var img_fg // Foreground
+var img_background // Background
+var img_wheel // Wheel
+var img_foreground // Foreground
 var snd_tick
 
 // Labels
@@ -53,9 +53,9 @@ function preload() {
     sectorAngle = 360 / sectorCount
 
     // Load all images
-    img_bg = loadImage(params.bg)
-    img_wh = loadImage(params.wh)
-    img_fg = loadImage(params.fg)
+    img_background = loadImage(params.background)
+    img_wheel = loadImage(params.wheel)
+    img_foreground = loadImage(params.foreground)
 
     snd_tick = loadSound('sounds/tick.mp3')
 }
@@ -67,7 +67,7 @@ function setup() {
     textAlign(CENTER, CENTER)
 
     // Create a canvas only slightly larger than the wheel image
-    let size = img_wh.width > img_wh.height ? img_wh.width : img_wh.height
+    let size = img_wheel.width > img_wheel.height ? img_wheel.width : img_wheel.height
     size += 20
     createCanvas(size, size)
 }
@@ -78,7 +78,7 @@ function draw() {
     background(0)
 
     // Render background image
-    image(img_bg, 0, 0)
+    image(img_background, 0, 0)
 
 
     if (state == 'ACTIVE') {
@@ -115,7 +115,7 @@ function draw() {
     // Render wheel image
     push()
     rotate(wheelAngle % 360)
-    image(img_wh, 0, 0)
+    image(img_wheel, 0, 0)
     pop()
 
     // Render debug text for which label it is on
