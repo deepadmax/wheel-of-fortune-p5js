@@ -1,4 +1,5 @@
-// When visiting the page, the follow arguments must be passed on in the URL:
+// When visiting the page, the follow arguments must be passed in the URL:
+// 
 // bgcolor     : color behind graphics
 // sectors     : number of sectors
 // duration    : spin animation duration
@@ -9,7 +10,7 @@
 // foreground  : URL to foreground image
 // background  : URL to background image
 // 
-// Ex. http://127.0.0.1:5500/index.html?n=8&mg=images/wheel.png&bg=images/background.png&fg=images/foreground.png
+// Ex. http://127.0.0.1:5500/index.html?bgcolor=000000&sectors=8&...
 
 // Whether spinning or not
 var state = 'INACTIVE'
