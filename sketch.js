@@ -1,18 +1,25 @@
 // When visiting the page, the follow arguments must be passed on in the URL:
-// n:  number of different labels
-// fg: URL to foreground image
-// mg: URL to image for wheel
-// bg: URL to background image
+// bgcolor     : color behind graphics
+// sectors     : number of sectors
+// duration    : spin animation duration
+// smoothness  : how slowly the target is approached, >1.0
+// revolutions : number of revolutions to reach target
+// offset      : how far from the sector center the target angle may be
+// wheel       : URL to image for wheel
+// foreground  : URL to foreground image
+// background  : URL to background image
 // 
 // Ex. http://127.0.0.1:5500/index.html?n=8&mg=images/wheel.png&bg=images/background.png&fg=images/foreground.png
 
-
+// Whether spinning or not
 var state = 'INACTIVE'
+// Background color
+var backgroundColor
 
 // Images
-var img_background // Background
-var img_wheel // Wheel
-var img_foreground // Foreground
+var img_background
+var img_wheel
+var img_foreground
 var snd_tick
 
 // Labels
@@ -20,17 +27,17 @@ var sectorCount
 var sectorAngle
 
 // Target
-var startAngle = 0 // Angle at start of spin
+var startAngle = 0
 var targetSector
 var targetAngle = 1
 
 // Animation
 var startFrame = 0
 var endFrame = 0
-var duration // Length of the entire animation
-var smoothness // How slowly the target is approached, >1.0
-var revolutions // Number of revolutions to reach target
-var offset // How much the target can be offset on the label
+var duration
+var smoothness
+var revolutions
+var offset
 
 var tickCounter = 0
 
@@ -43,6 +50,7 @@ function preload() {
     let params = getURLParams()
     console.log(params)
     
+    backgroundColor = '#' + params.bgcolor
     sectorCount = parseInt(params.sectors)
     duration = parseFloat(params.duration)
     smoothness = parseFloat(params.smoothness)
@@ -75,7 +83,7 @@ function setup() {
 
 function draw() {
     translate(width / 2, height / 2)
-    background(0)
+    background(color(backgroundColor))
 
     // Render background image
     image(img_background, 0, 0)
