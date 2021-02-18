@@ -9,6 +9,7 @@
 // wheel       : URL to image for wheel
 // foreground  : URL to foreground image
 // background  : URL to background image
+// tick        : URL to tick sound file
 // 
 // Ex. http://127.0.0.1:5500/index.html?bgcolor=000000&sectors=8&...
 
@@ -66,7 +67,8 @@ function preload() {
     img_wheel = loadImage(params.wheel)
     img_foreground = loadImage(params.foreground)
 
-    snd_tick = loadSound('sounds/tick.mp3')
+    // Load tick sound file
+    snd_tick = loadSound(params.tick)
 }
 
 
@@ -128,9 +130,12 @@ function draw() {
     pop()
 
     // Render debug text for which label it is on
-    let labelId = getLabel(wheelAngle)
-    textSize(56)
-    text(labelId, 0, 0)
+    // let labelId = getLabel(wheelAngle)
+    // textSize(56)
+    // text(labelId, 0, 0)
+
+    // Render foreground image
+    image(img_foreground, 0, 0)
 }
 
 
