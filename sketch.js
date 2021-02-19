@@ -164,7 +164,8 @@ function mousePressed() {
 
 function newTarget() {
     // Pick a random target label!
-    targetId = int(random(sectorCount))
+    // TODO: Remove 1 to remove censorship for gun!!!
+    targetId = int(random(1, sectorCount))
     
     // Calculate an exact angle on which to land,
     // which is of the current target label
