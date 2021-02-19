@@ -13,6 +13,7 @@
 // 
 // Ex. http://127.0.0.1:5500/index.html?bgcolor=000000&sectors=8&...
 
+
 // Whether spinning or not
 var state = 'INACTIVE'
 // Background color
@@ -40,6 +41,7 @@ var duration
 var smoothness
 var revolutions
 var offset
+var tickPitch
 
 var tickCounter = 0
 
@@ -58,6 +60,7 @@ function preload() {
     smoothness = parseFloat(params.smoothness)
     revolutions = parseFloat(params.revolutions)
     offset = parseFloat(params.offset)
+    tickPitch = params.pitch == 'true'
 
     // Calculate the width of each label
     sectorAngle = 360 / sectorCount
@@ -108,6 +111,14 @@ function draw() {
         // Add the difference to counter
         tickCounter += labelB - labelA
 
+        // Adjust the pitch of the tick to the velocity of the wheel
+        if (tickPitch) {
+            let velocity = wheelAngle - previousAngle
+            let v = constrain(velocity, 0, 40) / 40
+            let rate = slerp(2.0, 0.8, 1 - v, k=1.2)
+            snd_tick.rate(rate)
+        }
+
         // Play tick sound for each and every sector passed
         for (; tickCounter > 0; tickCounter--) {
             snd_tick.play()
@@ -129,25 +140,22 @@ function draw() {
     image(img_wheel, 0, 0)
     pop()
 
-    // Render debug text for which label it is on
-    // let labelId = getLabel(wheelAngle)
-    // textSize(56)
-    // text(labelId, 0, 0)
-
     // Render foreground image
     image(img_foreground, 0, 0)
 }
 
 
 function mousePressed() {
-    // Set start and end frames
-    startFrame = frameCount
-    endFrame = startFrame + 30 * duration
-
-    startAngle = wheelAngle
-    newTarget()
-
-    state = 'ACTIVE'
+    if (state == 'INACTIVE') {
+        // Set start and end frames
+        startFrame = frameCount
+        endFrame = startFrame + 60 * duration
+    
+        startAngle = wheelAngle
+        newTarget()
+    
+        state = 'ACTIVE'
+    }
 }
 
 
