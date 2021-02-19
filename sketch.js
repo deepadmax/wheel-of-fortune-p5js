@@ -46,7 +46,7 @@ var tickPitch
 var tickCounter = 0
 
 // Orientation
-var wheelAngle = random(0, 360)
+var wheelAngle
 
 
 function preload() {
@@ -79,6 +79,9 @@ function setup() {
     imageMode(CENTER)
     angleMode(DEGREES)
     textAlign(CENTER, CENTER)
+
+    // Randomize angle
+    wheelAngle = random(0, 360)
 
     // Create a canvas only slightly larger than the wheel image
     let size = img_wheel.width > img_wheel.height ? img_wheel.width : img_wheel.height
