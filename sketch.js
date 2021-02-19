@@ -46,7 +46,7 @@ var tickPitch
 var tickCounter = 0
 
 // Orientation
-var wheelAngle = 0
+var wheelAngle = random(0, 360)
 
 
 function preload() {
